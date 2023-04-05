@@ -24,7 +24,15 @@ public class CalcServlet extends HttpServlet {
             if (Character.isLetter(c)) {
                 String varName = String.valueOf(c);
                 String varValue = req.getParameter(varName);
-                variables.put(varName, Integer.parseInt(varValue));
+                try {
+                    variables.put(varName, Integer.parseInt(varValue));
+                } catch (NumberFormatException e) {
+                    Integer varRef = variables.get(varValue);
+                    if (varRef == null) {
+                        return;
+                    }
+                    variables.put(varName, varRef);
+                }
             }
         }
         int result = evaluate(expression);
