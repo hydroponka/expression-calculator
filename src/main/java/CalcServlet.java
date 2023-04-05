@@ -38,18 +38,71 @@ public class CalcServlet extends HttpServlet {
         int result = evaluate(expression);
         resp.getWriter().write(String.valueOf(result));
     }
-    private int evaluate(String expression) {
-        ScriptEngineManager manager = new ScriptEngineManager();
-        ScriptEngine engine = manager.getEngineByName("JavaScript");
-        for (Map.Entry<String, Integer> entry : variables.entrySet()) {
-            engine.put(entry.getKey(), entry.getValue());
+    private int evaluate(String expression) throws IllegalArgumentException {
+        expression = expression.replaceAll("\\s+", "");
+        return evaluateExpression(expression);
+    }
+
+    private int evaluateExpression(String expression) {
+        if (!expression.contains("+") && !expression.contains("-") &&
+                !expression.contains("*") && !expression.contains("/")) {
+            return evaluateOperand(expression);
         }
-        int result = 0;
+        int index = findLastOperatorIndex(expression);
+        String leftExpression = expression.substring(0, index);
+        String rightExpression = expression.substring(index + 1);
+        int leftValue = evaluateExpression(leftExpression);
+        int rightValue = evaluateExpression(rightExpression);
+        char operator = expression.charAt(index);
+        switch (operator) {
+            case '+':
+                return leftValue + rightValue;
+            case '-':
+                return leftValue - rightValue;
+            case '*':
+                return leftValue * rightValue;
+            case '/':
+                return leftValue / rightValue;
+            default:
+                throw new IllegalArgumentException("Invalid operator: " + operator);
+        }
+    }
+
+    private int evaluateOperand(String operand) {
+        if (operand.length() == 1 && Character.isLowerCase(operand.charAt(0))) {
+            Integer value = variables.get(operand);
+            if (value == null) {
+                throw new IllegalArgumentException("Undefined variable: " + operand);
+            }
+            return value;
+        }
         try {
-            result = ((Number) engine.eval(expression)).intValue();
-        } catch (ScriptException e) {
-            throw new RuntimeException(e);
+            return Integer.parseInt(operand);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid operand: " + operand);
         }
-        return result;
+    }
+
+    private int findLastOperatorIndex(String expression) {
+        int count = 0;
+        for (int i = expression.length() - 1; i >= 0; i--) {
+            char c = expression.charAt(i);
+            if (c == ')') {
+                count++;
+            } else if (c == '(') {
+                count--;
+            } else if (count == 0 && (c == '+' || c == '-')) {
+                return i;
+            } else if (count == 0 && (c == '*' || c == '/')) {
+                return i;
+            }
+        }
+        if (expression.charAt(0) == '(' && expression.charAt(expression.length() - 1) == ')') {
+            int innerIndex = findLastOperatorIndex(expression.substring(1, expression.length() - 1));
+            if (innerIndex != -1) {
+                return innerIndex + 1;
+            }
+        }
+        return -1;
     }
 }
