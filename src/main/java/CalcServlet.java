@@ -41,21 +41,22 @@ public class CalcServlet extends HttpServlet {
                 }
             }
         }
-        int result = evaluate(expression, variables);
+        int result = evaluate(expression);
         resp.getWriter().write(String.valueOf(result));
     }
-
-    private int evaluate(String expression, Map<String, Integer> variables) throws IllegalArgumentException {
+    private int evaluate(String expression) {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("JavaScript");
         for (Map.Entry<String, Integer> entry : variables.entrySet()) {
             engine.put(entry.getKey(), entry.getValue());
         }
+        int result = 0;
         try {
-            return (int) engine.eval(expression);
+            result = ((Number) engine.eval(expression)).intValue();
         } catch (ScriptException e) {
             throw new RuntimeException(e);
         }
+        return result;
     }
     @Override
     public void destroy() {
